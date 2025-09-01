@@ -30,7 +30,7 @@ class Extractor(SimpleSource):
 		# other variables from extractor.query_args, extractor.settings
 		args = self.prepare_request_args(row, _type)
 		page = args["cursor"] or 1
-		return f"https://quotes.toscrape.com/page/{page}/", page
+		return f"https://www.scrapethissite.com/pages/forms/?page_num={page}", page
 
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
@@ -44,12 +44,15 @@ class Extractor(SimpleSource):
 				rows = []
 				content = res.text
 				soup = BeautifulSoup(content, "html.parser")
-				for i, e in enumerate(soup.find_all(class_="quote")):
+				for i, e in enumerate(soup.find_all(class_="team")):
+					
 					rows.append({
-						"uri": f'https://quotes.toscrape.com/#{sha1(e.find(class_="text").get_text())}',  # noqa:E501
-						"author": e.find(class_="author").get_text(),
-						"text": e.find(class_="text").get_text(),
-						"tags": [t.get_text() for t in e.find_all(class_="tag")],
+						"uri": f'https://www.scrapethissite.com/#{sha1(e.get_text())}',  # noqa:E501
+						"name": e.find(class_="name").get_text(strip=True),
+						"year": e.find(class_="year").get_text(strip=True),
+						"wins": e.find(class_="wins").get_text(strip=True),
+						"losses": e.find(class_="losses").get_text(strip=True)
+						
 					})
 					
 				# slice rows length to limit from extractor.query_args or

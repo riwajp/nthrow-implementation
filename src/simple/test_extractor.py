@@ -5,7 +5,7 @@ from datetime import datetime
 from nthrow.utils import create_db_connection, create_store, utcnow
 from nthrow.utils import uri_clean, uri_row_count
 
-from extractor import Extractor
+from src.simple.extractor import Extractor
 
 # from nthrow.source.StorageHelper import Storage
 
@@ -28,7 +28,7 @@ def test_simple_extractor():
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later
-    extractor.set_list_info("https://quotes.toscrape.com/")
+    extractor.set_list_info("https://www.scrapethissite.com/pages/forms/")
 
     # sets the CustomStorage if redis can't be found
     # extractor.storage = Storage(conn, table)
@@ -68,6 +68,8 @@ def test_simple_extractor():
             print(row)
             assert type(row["next_update_at"]) == datetime
             assert row["next_update_at"] <= utcnow()
+            print("===========================================")
+            print(row["state"])
             to = row["state"]["pagination"]["to"]
             assert row["state"]["pagination"]["to"]
             assert not row["state"]["pagination"]["from"]
