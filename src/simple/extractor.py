@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from nthrow.utils import sha1
 from nthrow.source import SimpleSource
+import nepali_datetime
 
 """
 extractor.make_a_row method
@@ -25,35 +26,49 @@ class Extractor(SimpleSource):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def make_url(self, row, _type):
-		# args is dict that contains current page cursor, limit and
-		# other variables from extractor.query_args, extractor.settings
-		args = self.prepare_request_args(row, _type)
-		page = args["cursor"] or 1
-		return f"https://www.scrapethissite.com/pages/forms/?page_num={page}", page
-
+	
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
 		# it is what was returned with extractor.get_list_row method
 		# it holds pagination, errors, retry count, next update time etc.
 		try:
-			url, page = self.make_url(row, _type)
-			res = await self.http_get(url)  # wrapper around aiohttp session's get
+			url ="https://supremecourt.gov.np/weekly_dainik/pesi/daily/27"
+			args = self.prepare_request_args(row, _type)
+			page = args["cursor"] or "2082-05-17"
+			
+			form_data = {
+			"todays_date": "2082-05-17",
+			"pesi_date": "2082-05-17",
+			"submit": "खोज्नु होस्",
+			}
 
+			res = await self.http_post(url,data=form_data)  
 			if res.status_code == 200:
 				rows = []
 				content = res.text
 				soup = BeautifulSoup(content, "html.parser")
-				for i, e in enumerate(soup.find_all(class_="team")):
-					
-					rows.append({
-						"uri": f'https://www.scrapethissite.com/#{sha1(e.get_text())}',  # noqa:E501
-						"name": e.find(class_="name").get_text(strip=True),
-						"year": e.find(class_="year").get_text(strip=True),
-						"wins": e.find(class_="wins").get_text(strip=True),
-						"losses": e.find(class_="losses").get_text(strip=True)
-						
-					})
+
+			
+				tables = soup.find_all("table", class_="record_display")[1:]
+				
+
+				for table in tables:
+					for tr in table.find_all("tr")[1:]:
+						tds = tr.find_all("td")
+						if len(tds)!=10:
+							continue
+
+						row_data = {
+							"uri":"https://supremecourt.gov.np/weekly_dainik/pesi/daily/27#" + sha1(tr.get_text(strip=True)),
+							"case_num": tds[1].get_text(strip=True),
+							"registration_date": tds[2].get_text(strip=True),
+							"case_type": tds[3].get_text(strip=True),
+							"plantiff": tds[4].get_text(strip=True),
+							"defendant": tds[5].get_text(strip=True),
+						}
+
+						rows.append(row_data)
+
 					
 				# slice rows length to limit from extractor.query_args or
 				# extractor.settings[remote]
@@ -68,7 +83,7 @@ class Extractor(SimpleSource):
 					"state": {
 						"pagination": {
 							# value for next page, return None when pagination ends
-							_type: page + 1
+							# _type: page + 1
 						}
 					},
 				}
