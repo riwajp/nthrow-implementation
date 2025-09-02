@@ -65,11 +65,10 @@ def test_simple_extractor():
             # puts the returned rows in postgres table
             _ = await extractor.collect_rows(extractor.get_list_row())
             row = extractor.get_list_row()
-            print(row)
+           
             assert type(row["next_update_at"]) == datetime
             assert row["next_update_at"] <= utcnow()
-            print("===========================================")
-            print(row["state"])
+           
             to = row["state"]["pagination"]["to"]
             assert row["state"]["pagination"]["to"]
             assert not row["state"]["pagination"]["from"]

@@ -3,6 +3,8 @@ from nthrow.utils import sha1
 from nthrow.source import SimpleSource
 import nepali_datetime
 import datetime 
+from nthrow.source.http import create_session
+
 
 """
 extractor.make_a_row method
@@ -27,6 +29,8 @@ class Extractor(SimpleSource):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
+	async def create_session(self, session=None):		
+		return await create_session(timeout=24)
 	
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
@@ -64,6 +68,7 @@ class Extractor(SimpleSource):
 
 						row_data = {
 							"uri":"https://supremecourt.gov.np/weekly_dainik/pesi/daily/39#" + sha1(tr.get_text(strip=True)),
+							"hearing_date":form_data["pesi_date"],
 							"case_num": tds[1].get_text(strip=True),
 							"registration_date": tds[2].get_text(strip=True),
 							"case_type": tds[3].get_text(strip=True),
