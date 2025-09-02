@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
 from nthrow.utils import sha1
-from nthrow.source import SimpleSource
 import nepali_datetime
 import datetime 
 from nthrow.source.http import create_session
+from nthrow.source import DateRangeSource
 
 
 """
@@ -25,28 +25,47 @@ extractor.make_error method
 """
 
 
-class Extractor(SimpleSource):
+class Extractor(DateRangeSource):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self.page_district_id=[86,64,19,31]
 
 	async def create_session(self, session=None):		
 		return await create_session(timeout=24)
+	
+
+	def make_url(self, row, _type):
+		args = self.prepare_request_args(row, _type)
+	
+		page = args["cursor"] or 1
+		
+		
+		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{self.page_district_id[page-1]}"  # noqa:E501
+		return url, args, page
 	
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
 		# it is what was returned with extractor.get_list_row method
 		# it holds pagination, errors, retry count, next update time etc.
 		try:
-			url ="https://supremecourt.gov.np/weekly_dainik/pesi/daily/39"
-			args = self.prepare_request_args(row, _type)
+			
+			url, args, page = self.make_url(row, _type)
 			
 			today_date=nepali_datetime.date.today()
-			page =  nepali_datetime.datetime.strptime(args["cursor"] , '%Y-%m-%d') if args["cursor"] else today_date
+			
+			
+			to_date_str = row["state"]["pagination"]["to"]["date"]
 
-	
+			if to_date_str:  
+				to_date = datetime.strptime(to_date_str, "%Y-%m-%d").date()
+			else:
+				to_date = args["before"].date()
+
+			
+
 			form_data = {
 			"todays_date": today_date.strftime('%K-%n-%D'),
-			"pesi_date": page.strftime('%K-%n-%D'),
+			"pesi_date": nepali_datetime.date.from_datetime_date(to_date).strftime('%K-%n-%D'),
 			"submit": "खोज्नु होस्",
 			}
 
@@ -67,7 +86,7 @@ class Extractor(SimpleSource):
 							continue
 
 						row_data = {
-							"uri":"https://supremecourt.gov.np/weekly_dainik/pesi/daily/39#" + sha1(tr.get_text(strip=True)),
+							"uri":url + sha1(tr.get_text(strip=True)),
 							"hearing_date":form_data["pesi_date"],
 							"case_num": tds[1].get_text(strip=True),
 							"registration_date": tds[2].get_text(strip=True),
@@ -92,7 +111,8 @@ class Extractor(SimpleSource):
 					"state": {
 						"pagination": {
 							# value for next page, return None when pagination ends
-							_type: (page - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+							_type: {"date":(to_date - datetime.timedelta(days=1)).strftime('%Y-%m-%d'), 
+			   						"cursor":page+1 if page <=3 else None}
 						}
 					},
 				}

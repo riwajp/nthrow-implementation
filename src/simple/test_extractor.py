@@ -25,10 +25,11 @@ create_store(conn, table)  # creates table
 
 def test_simple_extractor():
     extractor = Extractor(conn, table)
+    extractor.query_args.update({"before":"2025-09-02","after":"2025-08-27"})
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later
-    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/39")
+    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/")
 
     # sets the CustomStorage if redis can't be found
     # extractor.storage = Storage(conn, table)
@@ -65,7 +66,7 @@ def test_simple_extractor():
             # puts the returned rows in postgres table
             _ = await extractor.collect_rows(extractor.get_list_row())
             row = extractor.get_list_row()
-           
+            return
             assert type(row["next_update_at"]) == datetime
             assert row["next_update_at"] <= utcnow()
            

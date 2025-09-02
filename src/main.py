@@ -24,8 +24,9 @@ create_store(conn, table)  # creates table
 
 def extract_cases():
     extractor = Extractor(conn, table)
+    extractor.query_args.update({"before":"2025-09-02"})
  
-    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/39")
+    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/")
 
    
     extractor.settings = {
@@ -36,19 +37,7 @@ def extract_cases():
         }
     }
 
-    """
-        extractor.settings = {
-            'remote': {
-                # how often to refresh this dataset (in miutes)
-                # you can leave it None but this extractor will only run once
-                # (will still run until pagination ends)
-                'refresh_interval': None,
-
-                # number if remote url accepts a limit parameter
-                'limit': None
-            }
-        }
-    """
+   
 
     async def call():
         async with await extractor.create_session() as session:
@@ -56,18 +45,23 @@ def extract_cases():
 
             # collect_rows calls fetch_rows on your extractor class and
             # puts the returned rows in postgres table
-
             while True:
-                           
-                _ = await extractor.collect_rows(extractor.get_list_row())
-                
-                row = extractor.get_list_row()               
+                while True:
+                            
+                    _ = await extractor.collect_rows(extractor.get_list_row())
+                    
+                    row = extractor.get_list_row()               
 
-                next_page=row["state"]["pagination"]["to"]
-               
-                if nepali_datetime.datetime.strptime(next_page, '%Y-%m-%d').date() < nepali_datetime.date(2082, 5, 10):
-                    print("=====pagination ended")
-                    break
+                    
+                
+                    if not row["state"]["pagination"]["to"]["cursor"]:
+                        print("===== pagination ended")
+                        break
+
+                if not row["state"]["pagination"]["to"]["date"]:
+                        print("===== pagination ended")
+                        break
+
                
            
             # l.del_garbage()
