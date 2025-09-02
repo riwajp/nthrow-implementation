@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from nthrow.utils import sha1
 from nthrow.source import SimpleSource
 import nepali_datetime
+import datetime 
 
 """
 extractor.make_a_row method
@@ -32,13 +33,16 @@ class Extractor(SimpleSource):
 		# it is what was returned with extractor.get_list_row method
 		# it holds pagination, errors, retry count, next update time etc.
 		try:
-			url ="https://supremecourt.gov.np/weekly_dainik/pesi/daily/27"
+			url ="https://supremecourt.gov.np/weekly_dainik/pesi/daily/39"
 			args = self.prepare_request_args(row, _type)
-			page = args["cursor"] or "2082-05-17"
 			
+			today_date=nepali_datetime.date.today()
+			page =  nepali_datetime.datetime.strptime(args["cursor"] , '%Y-%m-%d') if args["cursor"] else today_date
+
+	
 			form_data = {
-			"todays_date": "2082-05-17",
-			"pesi_date": "2082-05-17",
+			"todays_date": today_date.strftime('%K-%n-%D'),
+			"pesi_date": page.strftime('%K-%n-%D'),
 			"submit": "खोज्नु होस्",
 			}
 
@@ -59,7 +63,7 @@ class Extractor(SimpleSource):
 							continue
 
 						row_data = {
-							"uri":"https://supremecourt.gov.np/weekly_dainik/pesi/daily/27#" + sha1(tr.get_text(strip=True)),
+							"uri":"https://supremecourt.gov.np/weekly_dainik/pesi/daily/39#" + sha1(tr.get_text(strip=True)),
 							"case_num": tds[1].get_text(strip=True),
 							"registration_date": tds[2].get_text(strip=True),
 							"case_type": tds[3].get_text(strip=True),
@@ -83,7 +87,7 @@ class Extractor(SimpleSource):
 					"state": {
 						"pagination": {
 							# value for next page, return None when pagination ends
-							# _type: page + 1
+							_type: (page - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 						}
 					},
 				}

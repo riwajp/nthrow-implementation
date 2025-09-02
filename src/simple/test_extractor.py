@@ -28,7 +28,7 @@ def test_simple_extractor():
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later
-    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/27")
+    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/39")
 
     # sets the CustomStorage if redis can't be found
     # extractor.storage = Storage(conn, table)
@@ -75,7 +75,7 @@ def test_simple_extractor():
             assert not row["state"]["pagination"]["from"]
 
             row_count = uri_row_count(extractor.uri, conn, table, partial=False)
-            return
+            
             assert row_count >= 10
 
             # if the pagination has next page info, should_run_again() will
