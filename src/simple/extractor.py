@@ -29,7 +29,7 @@ extractor.make_error method
 class Extractor(DateRangeSource):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.page_district_id=[86,64,19,31]
+	
 
 	async def create_session(self, session=None):		
 		return await create_session(timeout=24)
@@ -41,7 +41,7 @@ class Extractor(DateRangeSource):
 		page = args["cursor"] or 1
 		todays_date=nepali_datetime.date.today()
 		
-		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{self.page_district_id[page-1]}"  # noqa:E501
+		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{page+17}"  # noqa:E501
 		return url, args, page, todays_date
 	
 	async def fetch_rows(self, row, _type="to"):
@@ -93,7 +93,7 @@ class Extractor(DateRangeSource):
 				print(f"Fopund {len(rows)} cases for district {page} on date {args['before']}")
 				rows = self.clamp_rows_length(rows)
 
-				if(page==len(self.page_district_id)):					
+				if(page==78):					
 					args["before"]=(args["before"] - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
 								
@@ -106,7 +106,7 @@ class Extractor(DateRangeSource):
 					],
 					"state": {
 						"pagination": self.construct_pagination(
-							row, _type, page+1 if page <=len(self.page_district_id)-1 else None, args
+							row, _type, page+1 if page <=78 else None, args
 						)
 					},
 				}
