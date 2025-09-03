@@ -25,6 +25,7 @@ extractor.make_error method
 """
 
 
+
 class Extractor(DateRangeSource):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -38,10 +39,10 @@ class Extractor(DateRangeSource):
 		args = self.prepare_request_args(row, _type)
 	
 		page = args["cursor"] or 1
-		
+		todays_date=nepali_datetime.date.today()
 		
 		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{self.page_district_id[page-1]}"  # noqa:E501
-		return url, args, page
+		return url, args, page, todays_date
 	
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
@@ -49,23 +50,11 @@ class Extractor(DateRangeSource):
 		# it holds pagination, errors, retry count, next update time etc.
 		try:
 			
-			url, args, page = self.make_url(row, _type)
+			url, args, page, todays_date = self.make_url(row, _type)		
 			
-			today_date=nepali_datetime.date.today()
-			
-			
-			to_date_str = row["state"]["pagination"]["to"]["date"]
-
-			if to_date_str:  
-				to_date = datetime.strptime(to_date_str, "%Y-%m-%d").date()
-			else:
-				to_date = args["before"].date()
-
-			
-
 			form_data = {
-			"todays_date": today_date.strftime('%K-%n-%D'),
-			"pesi_date": nepali_datetime.date.from_datetime_date(to_date).strftime('%K-%n-%D'),
+			"todays_date": todays_date.strftime('%K-%n-%D'),
+			"pesi_date": nepali_datetime.date.from_datetime_date(args["before"].date()).strftime('%K-%n-%D'),
 			"submit": "खोज्नु होस्",
 			}
 
@@ -87,6 +76,7 @@ class Extractor(DateRangeSource):
 
 						row_data = {
 							"uri":url + sha1(tr.get_text(strip=True)),
+							"district":page,
 							"hearing_date":form_data["pesi_date"],
 							"case_num": tds[1].get_text(strip=True),
 							"registration_date": tds[2].get_text(strip=True),
@@ -100,7 +90,13 @@ class Extractor(DateRangeSource):
 					
 				# slice rows length to limit from extractor.query_args or
 				# extractor.settings[remote]
+				print(f"Fopund {len(rows)} cases for district {page} on date {args['before']}")
 				rows = self.clamp_rows_length(rows)
+
+				if(page==len(self.page_district_id)):					
+					args["before"]=(args["before"] - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+								
 				return {
 					"rows": [
 						self.make_a_row(
@@ -109,11 +105,9 @@ class Extractor(DateRangeSource):
 						for r in rows
 					],
 					"state": {
-						"pagination": {
-							# value for next page, return None when pagination ends
-							_type: {"date":(to_date - datetime.timedelta(days=1)).strftime('%Y-%m-%d'), 
-			   						"cursor":page+1 if page <=3 else None}
-						}
+						"pagination": self.construct_pagination(
+							row, _type, page+1 if page <=len(self.page_district_id)-1 else None, args
+						)
 					},
 				}
 			else:
