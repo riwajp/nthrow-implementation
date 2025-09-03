@@ -41,7 +41,8 @@ class Extractor(DateRangeSource):
 		page = args["cursor"] or 1
 		todays_date=nepali_datetime.date.today()
 		
-		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{page+17}"  # noqa:E501
+		district_path=page+19 if page>=76 else page+17
+		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{district_path}"  # noqa:E501
 		return url, args, page, todays_date
 	
 	async def fetch_rows(self, row, _type="to"):
@@ -93,7 +94,7 @@ class Extractor(DateRangeSource):
 				print(f"Fopund {len(rows)} cases for district {page} on date {args['before']}")
 				rows = self.clamp_rows_length(rows)
 
-				if(page==78):					
+				if(page==77):					
 					args["before"]=(args["before"] - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
 								
@@ -106,7 +107,7 @@ class Extractor(DateRangeSource):
 					],
 					"state": {
 						"pagination": self.construct_pagination(
-							row, _type, page+1 if page <=78 else None, args
+							row, _type, page+1 if page <=77 else None, args
 						)
 					},
 				}
