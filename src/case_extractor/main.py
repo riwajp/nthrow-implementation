@@ -2,7 +2,7 @@ import os
 import asyncio
 import time
 from nthrow.utils import create_db_connection, create_store
-from src.simple.extractor import Extractor
+from src.case_extractor.extractor import Extractor
 
 
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from nthrow.utils import create_db_connection, create_store, utcnow
 from nthrow.utils import uri_clean, uri_row_count
 
-from src.simple.extractor import Extractor
+from src.case_extractor.extractor import Extractor
 
 # from nthrow.source.StorageHelper import Storage
 
