@@ -39,9 +39,9 @@ class Extractor(SimpleSource):
 			refresh_interval=self.settings["remote"]["refresh_interval"]
 			start= row.get("updated_at",utcnow() - timedelta(minutes=refresh_interval)).strftime("%Y-%m-%d-%H:%M:%S")
 
-			
+		
 		print(start)
-		return f"https://www.seismicportal.eu/fdsnws/event/1/query?limit={limit}&start={start}&format=json"
+		return f"https://www.seismicportal.eu/fdsnws/event/1/query?limit={limit}&updatedafter={start}&format=json"
 
 
 	
