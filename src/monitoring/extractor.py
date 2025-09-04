@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from nthrow.utils import sha1
 from nthrow.source import SimpleSource
@@ -30,9 +30,18 @@ class Extractor(SimpleSource):
 	def make_url(self, row, _type):
 		args = self.prepare_request_args(row, _type)
 		
-		
-		limit=args["limit"]
-		return f"https://www.seismicportal.eu/fdsnws/event/1/query?limit={limit}&start=2025-09-04-06:00:00&format=json"
+
+		limit=args['q']["limit"]
+
+		start=args['q'].get("start",None)
+
+		if not start:
+			refresh_interval=self.settings["remote"]["refresh_interval"]
+			start= row.get("updated_at",datetime.now() - timedelta(minutes=refresh_interval)).strftime("%Y-%m-%d-%H:%M:%S")
+
+			
+		print(start)
+		return f"https://www.seismicportal.eu/fdsnws/event/1/query?limit={limit}&start={start}&format=json"
 
 
 	
