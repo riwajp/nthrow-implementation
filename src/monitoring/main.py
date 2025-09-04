@@ -26,8 +26,12 @@ create_store(conn, table)  # creates table
 
 def monitor_activity():
     extractor = Extractor(conn, table)
-    # extractor.query_args.update({"limit": 100, "start":"2025-09-04-06:00:00"})  # default args for your dataset
-    extractor.query_args.update({"limit": 100})
+
+    # fetches events since the provided datetime in every iteration, updates the repeated rows
+    # extractor.query_args.update({"limit": 100, "start":"2025-09-04-06:00:00"})  
+
+    # fetches new events since the last updated_at time only
+    extractor.query_args.update({"limit": 100}) 
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later

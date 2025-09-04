@@ -33,27 +33,26 @@ class Extractor(SimpleSource):
 
 		limit=args['q']["limit"]
 
+		# if start is provided in query_args, use that
 		start=args['q'].get("start",None)
 
+		# if start is not provided, fetch data added after last updated_at time
 		if not start:
 			refresh_interval=self.settings["remote"]["refresh_interval"]
 			start= row.get("updated_at",utcnow() - timedelta(minutes=refresh_interval)).strftime("%Y-%m-%d-%H:%M:%S")
 
-		
-		print(start)
 		return f"https://www.seismicportal.eu/fdsnws/event/1/query?limit={limit}&updatedafter={start}&format=json"
 
 
 	
 	async def fetch_rows(self, row, _type="to"):
-		# row is info about this dataset
-		# it is what was returned with extractor.get_list_row method
-		# it holds pagination, errors, retry count, next update time etc.
+		
 		try:
 			url = self.make_url(row, _type)
 			
 			res = await self.http_get(url)  # wrapper around aiohttp session's get
 
+			# if no events found in the provided time range, 204 with empty response is recieved	
 			if res.status_code == 200 or res.status_code == 204:
 				
 				rows = []
