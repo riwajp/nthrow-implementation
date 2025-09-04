@@ -37,7 +37,7 @@ class Extractor(SimpleSource):
 
 		if not start:
 			refresh_interval=self.settings["remote"]["refresh_interval"]
-			start= row.get("updated_at",datetime.now() - timedelta(minutes=refresh_interval)).strftime("%Y-%m-%d-%H:%M:%S")
+			start= row.get("updated_at",utcnow() - timedelta(minutes=refresh_interval)).strftime("%Y-%m-%d-%H:%M:%S")
 
 			
 		print(start)
@@ -54,10 +54,13 @@ class Extractor(SimpleSource):
 			
 			res = await self.http_get(url)  # wrapper around aiohttp session's get
 
-			if res.status_code == 200:
-				rows = []
-				content = res.json()
+			if res.status_code == 200 or res.status_code == 204:
 				
+				rows = []
+				try:
+					content = res.json() 
+				except ValueError:
+					content = {"features": []}			
 				
 				
 				for event in content["features"]:

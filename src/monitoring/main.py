@@ -24,10 +24,10 @@ conn = create_db_connection(**creds)
 create_store(conn, table)  # creates table
 
 
-def monitor_price():
+def monitor_activity():
     extractor = Extractor(conn, table)
-    extractor.query_args.update({"limit": 100, "start":"2025-09-04-06:00:00"})  # default args for your dataset
-    # extractor.query_args.update({"limit": 100})
+    # extractor.query_args.update({"limit": 100, "start":"2025-09-04-06:00:00"})  # default args for your dataset
+    extractor.query_args.update({"limit": 100})
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later
@@ -73,4 +73,4 @@ def monitor_price():
 
 
 if __name__ == "__main__":
-    monitor_price()
+    monitor_activity()
