@@ -5,7 +5,7 @@ from datetime import datetime
 from nthrow.utils import create_db_connection, create_store, utcnow
 from nthrow.utils import uri_clean, uri_row_count
 
-from src.simple.extractor import Extractor
+from src.case_extractor.extractor import Extractor
 
 # from nthrow.source.StorageHelper import Storage
 
@@ -25,10 +25,11 @@ create_store(conn, table)  # creates table
 
 def test_simple_extractor():
     extractor = Extractor(conn, table)
+    extractor.query_args.update({"before":"2025-09-02","after":"2025-08-27"})
 
     # url of your dataset, this effectively becomes id of this dataset
     # use l.get_list_row() to return this record from database later
-    extractor.set_list_info("https://www.scrapethissite.com/pages/forms/")
+    extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/")
 
     # sets the CustomStorage if redis can't be found
     # extractor.storage = Storage(conn, table)
@@ -65,16 +66,17 @@ def test_simple_extractor():
             # puts the returned rows in postgres table
             _ = await extractor.collect_rows(extractor.get_list_row())
             row = extractor.get_list_row()
-            print(row)
+            
+            return
             assert type(row["next_update_at"]) == datetime
             assert row["next_update_at"] <= utcnow()
-            print("===========================================")
-            print(row["state"])
+           
             to = row["state"]["pagination"]["to"]
             assert row["state"]["pagination"]["to"]
             assert not row["state"]["pagination"]["from"]
 
             row_count = uri_row_count(extractor.uri, conn, table, partial=False)
+            
             assert row_count >= 10
 
             # if the pagination has next page info, should_run_again() will

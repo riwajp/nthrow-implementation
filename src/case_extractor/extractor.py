@@ -1,0 +1,119 @@
+from bs4 import BeautifulSoup
+from nthrow.utils import sha1
+import nepali_datetime
+import datetime 
+from nthrow.source.http import create_session
+from nthrow.source import DateRangeSource
+
+
+"""
+extractor.make_a_row method
+	make_a_row takes 3 parameters here
+	1.) url of the dataset that you put in extractor.set_list_info
+	2.) url of a row,
+			always pass it through self.mini_uri method,
+			this replaces https with http and
+			removes www. from urls to reduce duplicate rows
+	- hash of urls from 1 & 2 becomes id of the row
+	3.) the row data, it's stored in a JSONB column
+
+extractor.make_error method
+	make_error takes 3 parameters
+	1.) _type = HTTP, Exception etc.
+	2.) code = 404, 403 etc.
+	3.) message = None (Any text message)
+"""
+
+
+
+class Extractor(DateRangeSource):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+	
+
+	async def create_session(self, session=None):		
+		return await create_session(timeout=24)
+	
+
+	def make_url(self, row, _type):
+		args = self.prepare_request_args(row, _type)
+	
+		page = args["cursor"] or 1
+		todays_date=nepali_datetime.date.today()
+		
+		district_path=page+19 if page>=76 else page+17
+		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{district_path}"  # noqa:E501
+		return url, args, page, todays_date
+	
+	async def fetch_rows(self, row, _type="to"):
+		# row is info about this dataset
+		# it is what was returned with extractor.get_list_row method
+		# it holds pagination, errors, retry count, next update time etc.
+		try:
+			
+			url, args, page, todays_date = self.make_url(row, _type)		
+			
+			form_data = {
+			"todays_date": todays_date.strftime('%K-%n-%D'),
+			"pesi_date": nepali_datetime.date.from_datetime_date(args["before"].date()).strftime('%K-%n-%D'),
+			"submit": "खोज्नु होस्",
+			}
+
+			res = await self.http_post(url,data=form_data)  
+			if res.status_code == 200:
+				rows = []
+				content = res.text
+				soup = BeautifulSoup(content, "html.parser")
+
+			
+				tables = soup.find_all("table", class_="record_display")[1:]
+				
+
+				for table in tables:
+					for tr in table.find_all("tr")[1:]:
+						tds = tr.find_all("td")
+						if len(tds)!=10:
+							continue
+
+						row_data = {
+							"uri":url + sha1(tr.get_text(strip=True)),
+							"district":page,
+							"hearing_date":form_data["pesi_date"],
+							"case_num": tds[1].get_text(strip=True),
+							"registration_date": tds[2].get_text(strip=True),
+							"case_type": tds[3].get_text(strip=True),
+							"plantiff": tds[4].get_text(strip=True),
+							"defendant": tds[5].get_text(strip=True),
+						}
+
+						rows.append(row_data)
+
+					
+				# slice rows length to limit from extractor.query_args or
+				# extractor.settings[remote]
+				print(f"Fopund {len(rows)} cases for district {page} on date {args['before']}")
+				rows = self.clamp_rows_length(rows)
+
+				if(page==77):					
+					args["before"]=(args["before"] - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
+								
+				return {
+					"rows": [
+						self.make_a_row(
+							row["uri"], self.mini_uri(r["uri"], keep_fragments=True), r
+						)
+						for r in rows
+					],
+					"state": {
+						"pagination": self.construct_pagination(
+							row, _type, page+1 if page <=77 else None, args
+						)
+					},
+				}
+			else:
+				self.logger.error("Non-200 HTTP response: %s : %s" % (res.status_code, url))
+				return self.make_error("HTTP", res.status_code, url)
+		except Exception as e:
+			self.logger.exception(e)
+			return self.make_error("Exception", type(e), str(e))
