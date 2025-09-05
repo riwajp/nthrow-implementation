@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from nthrow.utils import sha1
 import nepali_datetime
-import datetime 
 from nthrow.source.http import create_session
 from nthrow.source import DateRangeSource
 
@@ -37,13 +36,14 @@ class Extractor(DateRangeSource):
 
 	def make_url(self, row, _type):
 		args = self.prepare_request_args(row, _type)
-	
-		page = args["cursor"] or 1
+		q=args["q"]
+		district_path=q["district_path"]
+		
 		todays_date=nepali_datetime.date.today()
 		
-		district_path=page+19 if page>=76 else page+17
+		
 		url =f"https://supremecourt.gov.np/weekly_dainik/pesi/daily/{district_path}"  # noqa:E501
-		return url, args, page, todays_date
+		return url, args, district_path, todays_date
 	
 	async def fetch_rows(self, row, _type="to"):
 		# row is info about this dataset
@@ -51,7 +51,7 @@ class Extractor(DateRangeSource):
 		# it holds pagination, errors, retry count, next update time etc.
 		try:
 			
-			url, args, page, todays_date = self.make_url(row, _type)		
+			url, args,district_path,todays_date = self.make_url(row, _type)		
 			
 			form_data = {
 			"todays_date": todays_date.strftime('%K-%n-%D'),
@@ -77,7 +77,7 @@ class Extractor(DateRangeSource):
 
 						row_data = {
 							"uri":url + sha1(tr.get_text(strip=True)),
-							"district":page,
+							"district":district_path,
 							"hearing_date":form_data["pesi_date"],
 							"case_num": tds[1].get_text(strip=True),
 							"registration_date": tds[2].get_text(strip=True),
@@ -91,11 +91,9 @@ class Extractor(DateRangeSource):
 					
 				# slice rows length to limit from extractor.query_args or
 				# extractor.settings[remote]
-				print(f"Fopund {len(rows)} cases for district {page} on date {args['before']}")
+				print(f"=== Found {len(rows)} cases for district {district_path} on date {args['before']}")
 				rows = self.clamp_rows_length(rows)
-
-				if(page==77):					
-					args["before"]=(args["before"] - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+			
 
 								
 				return {
@@ -107,7 +105,7 @@ class Extractor(DateRangeSource):
 					],
 					"state": {
 						"pagination": self.construct_pagination(
-							row, _type, page+1 if page <=77 else None, args
+							row, _type, None, args
 						)
 					},
 				}

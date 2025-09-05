@@ -27,8 +27,8 @@ def state(pagi={}, config={}):
 				'to': {'date': None, 'cursor': None},
 				'config': {
 					'timezone': None,
-					'start': '2025-09-02', 
-					'end': '2020-01-01', 
+					'start': '2025-09-05', 
+					'end': '2025-09-02', 
 					'step': 1,
 					**config
 				},
@@ -38,7 +38,8 @@ def state(pagi={}, config={}):
 
 def extract_cases():
     extractor = Extractor(conn, table)
-    extractor.query_args.update({"before":"2025-09-02"})
+
+    extractor.query_args.update({"before":"2025-09-05"})
  
     extractor.set_list_info("https://supremecourt.gov.np/weekly_dainik/pesi/daily/")
 
@@ -56,25 +57,29 @@ def extract_cases():
     async def call():
         async with await extractor.create_session() as session:
             extractor.session =  session
-            row=extractor.make_a_row('/','https://supremecourt.gov.np/weekly_dainik/pesi/daily/',None,state(config={"step":1}),_list=True)
+            row=extractor.make_a_row('/','https://supremecourt.gov.np/weekly_dainik/pesi/daily/',None,state(),_list=True)
 
             # collect_rows calls fetch_rows on your extractor class and
             # puts the returned rows in postgres table
+            
+            district_num = 1
+            district_path=district_num+19 if district_num>=76 else district_num+17
+       
+            extractor.query_args.update({"district_path": district_path})
+
             while True:
-                while True:
+               
                             
-                    _ = await extractor.collect_rows(extractor.get_list_row(row))
-                    
-                    row = extractor.get_list_row()      
-                    
-                        
-                    if not row["state"]["pagination"]["to"] or not row["state"]["pagination"]["to"]["cursor"]:
-                        print("===== completed scraping all districts for this date =====")
-                        break
+                _ = await extractor.collect_rows(extractor.get_list_row(row))
+                
+                row = extractor.get_list_row()      
+                                                
 
                 if not row["state"]["pagination"]["to"]:
-                        print("===== completed scraping all dates")
-                        break
+                    print("===== completed scraping all dates")
+                    break
+                
+                time.sleep(2)
 
                
            
